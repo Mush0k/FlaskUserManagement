@@ -26,33 +26,36 @@ def print_users_with_roles():
 
             # 3. SQL-запрос (вывод списка пользователей)
             sql_query = """
-            SELECT 
-                u.user_id, 
-                u.username, 
-                u.first_name, 
-                u.last_name, 
-                r.role_name
-            FROM users u
-            LEFT JOIN user_roles ur ON u.user_id = ur.user_id
-            LEFT JOIN roles r ON ur.role_id = r.role_id;
+           select 
+           u.user_id, 
+           u.username, 
+           u.first_name,
+           u.last_name, 
+           GROUP_CONCAT(r.role_name SEPARATOR ', ') as role_list
+from users u
+left join user_roles ur on u.user_id = ur.user_id -- users -> user_roles -> roles
+left join roles r on ur.role_id = r.role_id
+group by u.user_id, u.first_name, u.last_name -- группировка
+order by u.user_id;
             """
             cursor.execute(sql_query)
             records = cursor.fetchall()
 
             # 4. вывод данных
             print("\nСписок зарегистрированных пользователей и их прав:")
-            print("-" * 60)
-            print(f"{'ID':<5} | {'Логин':<15} | {'Имя Фамилия':<20} | {'Роль':<15}")
-            print("-" * 60)
+            print("-" * 75)
+            print(f"{'ID':<5} | {'Логин':<15} | {'Имя':<15} | {'Фамилия':<15} | {'Роль':<30}")
+            print("-" * 75)
 
             for row in records:
                 user_id = row[0]
-                login = row[1]
-                full_name = f"{row[2] or ''} {row[3] or ''}".strip() 
+                username = row[1]
+                first_name = row[2]
+                last_name = row[3]
                 role = row[4] if row[4] else "Нет роли"
 
-                print(f"{user_id:<5} | {login:<15} | {full_name:<20} | {role:<15}")
-            print("-" * 60)
+                print(f"{user_id:<5} | {username:<15} | {first_name:<15} | {last_name:<15} | {role:<30}")
+            print("-" * 75)
 
 
     # 5. обработка ошибок 
