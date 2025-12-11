@@ -5,7 +5,7 @@ def print_users_with_roles():
     connection = None
     cursor = None
     
-    # 1. Настройки подключения (используем ваши параметры)
+    # 1. настройки подключения 
     config = {
         'host': 'localhost',
         'database': 'mushok',
@@ -14,17 +14,17 @@ def print_users_with_roles():
     }
 
     try:
-        # 1.1 Подключение к серверу MySQL
-        connection = mysql.connector.connect(**config) # Используем словарь config для чистоты
+        #подключение к серверу MySQL
+        connection = mysql.connector.connect(**config) #словарь config для чистоты
         
-        # Проверка и подтверждение подключения
+        # проверка и подтверждение подключения
         if connection.is_connected():
             print("Успешное подключение к базе данных MySQL.")
             
-            # 2. Создаем курсор для выполнения запросов
+            # 2. создание курсора для выполнения запросов
             cursor = connection.cursor()
 
-            # 3. SQL-запрос (объединение таблиц users, user_roles и roles)
+            # 3. SQL-запрос (вывод списка пользователей)
             sql_query = """
             SELECT 
                 u.user_id, 
@@ -39,10 +39,10 @@ def print_users_with_roles():
             cursor.execute(sql_query)
             records = cursor.fetchall()
 
-            # 4. Вывод данных
+            # 4. вывод данных
             print("\nСписок зарегистрированных пользователей и их прав:")
             print("-" * 60)
-            print(f"{'ID':<5} | {'Логин':<15} | {'Имя Фамилия':<20} | {'Роль (Права)':<15}")
+            print(f"{'ID':<5} | {'Логин':<15} | {'Имя Фамилия':<20} | {'Роль':<15}")
             print("-" * 60)
 
             for row in records:
@@ -55,7 +55,7 @@ def print_users_with_roles():
             print("-" * 60)
 
 
-    # 5. Обработка ошибок (Согласно руководству MySQL)
+    # 5. обработка ошибок 
     except mysql.connector.Error as err:
         if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
             print("Ошибка подключения: Неверный логин или пароль для MySQL.")
@@ -65,13 +65,13 @@ def print_users_with_roles():
             print(f"Неизвестная ошибка MySQL: {err}")
 
     finally:
-        # 6. Закрываем соединение
+        # 6. закрываем соединение
         if cursor:
             cursor.close()
         if connection and connection.is_connected():
             connection.close()
             print("\nСоединение с базой данных закрыто.")
 
-# Запуск функции
+# запуск функции
 if __name__ == "__main__":
     print_users_with_roles()
