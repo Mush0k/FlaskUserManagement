@@ -51,7 +51,7 @@ def check_user_credentials(username, password):
 @app.route('/')
 def home():
     # возвращаем простой роут, который открывается в браузере
-    return "<h1>Сервер работает!</h1><p>Необходимо перейти на <a href='/login'>/login</a> для авторизации.</p>"
+    return render_template('home.html')
 
 
 # роут для авторизации 
@@ -74,7 +74,7 @@ def login_page():
         if check_user_credentials(username, password):
             message = "Авторизация прошла успешно!"
         else:
-            message = "Ошибка: Неверный логин или пароль."
+            message = "Неверный логин или пароль!"
             
     # отображение шаблона login.html и передача ему сообщния
     return render_template('login.html', message=message)
