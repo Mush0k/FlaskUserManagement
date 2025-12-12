@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Профиль пользователя</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <style>
+        /* стили для карточки профиля */
+        .profile-card {
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            width: 400px;
+            text-align: left;
+        }
+        .profile-card h1 {
+            color: #333;
+            border-bottom: 2px solid #5cb85c;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+        .profile-card p {
+            padding: 5px 0;
+            line-height: 1.5;
+        }
+        .logout-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #d9534f; /* кнопка выхода */
+            text-decoration: none;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="profile-card">
+        
+        <h1>Добро пожаловать, {{ user.username }}!</h1>
+        <hr>
+        
+        <p><strong>ID пользователя:</strong> {{ user.user_id }}</p>
+
+            {% if user.last_name %}
+            <p><strong>Фамилия:</strong> {{ user.last_name }}</p>
+        {% endif %}
+
+        {% if user.first_name %}
+            <p><strong>Имя:</strong> {{ user.first_name }}</p>
+        {% endif %}
+        
+           {% if user.patronymic %}
+            <p><strong>Отчество:</strong> {{ user.patronymic }}</p>
+        {% endif %}
+
+        {% if user.email %}
+            <p><strong>Email:</strong> {{ user.email }}</p>
+        {% endif %}
+
+        <hr>
+        
+        <a href="{{ url_for('logout_page') }}" class="logout-link">
+            Выйти из системы
+        </a>
+    </div>
+</body>
+</html>
