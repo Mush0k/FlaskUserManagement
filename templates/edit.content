@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Редактировать: {{ content.title }}</title>
+    <style>
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Редактирование Материала: {{ content.title }}</h1>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <ul class=flashes>
+            {% for category, message in messages %}
+              <li class="{{ category }}">{{ message }}</li>
+            {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('edit_content_page', content_id=content.content_id) }}">
+        
+        <label for="category_id">Категория:</label><br>
+        <select id="category_id" name="category_id" required>
+            {% for cat in categories %}
+                <option value="{{ cat.category_id }}" {% if cat.category_id == content.category_id %}selected{% endif %}>
+                    {{ cat.category_name }}
+                </option>
+            {% endfor %}
+        </select><br><br>
+
+        <label for="status">Статус:</label><br>
+        <select id="status" name="status" required>
+            {% for s in statuses %}
+                <option value="{{ s }}" {% if s == content.status %}selected{% endif %}>
+                    {{ s }}
+                </option>
+            {% endfor %}
+        </select><br><br>
+        
+        <input type="hidden" name="type_id" value="{{ content.type_id }}"> 
+        
+        <label for="title">Заголовок:</label><br>
+        <input type="text" id="title" name="title" value="{{ content.title }}" required><br><br>
+        
+        <label for="content_body">Содержание:</label><br>
+        <textarea id="content_body" name="content_body" rows="10" cols="50" required>{{ content.content_body }}</textarea><br><br>
+        
+        <button type="submit">Сохранить Изменения</button>
+    </form>
+    
+    <p><a href="{{ url_for('list_content_page') }}">Отмена и назад к списку</a></p>
+</body>
+</html>
