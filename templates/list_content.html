@@ -6,8 +6,6 @@
     <style>
         table { border-collapse: collapse; width: 80%; margin: 20px auto; }
         th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-        .success { color: green; }
-        .error { color: red; }
     </style>
 </head>
 <body>
@@ -43,14 +41,14 @@
             {% for item in content_list %}
             <tr>
                 <td>{{ item.content_id }}</td>
-                <td>{{ item.title }}</td> 
+                <td>{{ item.title }}</td>
                 <td>{{ item.author_name }}</td>
                 <td>{{ item.status }}</td>
                 <td>{{ item.published_at }}</td>
                 <td>
                     <a href="{{ url_for('edit_content_page', content_id=item.content_id) }}">Редактировать</a> |
                     <a href="{{ url_for('delete_content_action', content_id=item.content_id) }}" 
-                       onclick="return confirm('Удалить {{ item.title }}?')">Удалить</a>
+                       onclick="return confirm('Вы уверены, что хотите удалить материал {{ item.title }}?')">Удалить</a>
                 </td>
             </tr>
             {% endfor %}

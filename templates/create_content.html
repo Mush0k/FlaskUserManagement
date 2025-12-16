@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Добавить Материал</title>
+</head>
+<body>
+    <h1>Добавить Новый Материал</h1>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <ul class=flashes>
+            {% for category, message in messages %}
+              <li class="{{ category }}">{{ message }}</li>
+            {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('create_content_page') }}">
+        
+        <label for="category_id">Категория:</label><br>
+        <select id="category_id" name="category_id" required>
+            <option value="">-- Выберите категорию --</option>
+            {% for cat in categories %}
+                <option value="{{ cat.category_id }}">{{ cat.category_name }}</option>
+            {% endfor %}
+        </select><br><br>
+
+        <input type="hidden" name="type_id" value="1"> 
+        
+        <label for="title">Заголовок:</label><br>
+        <input type="text" id="title" name="title" required><br><br>
+        
+        <label for="content_body">Содержание:</label><br>
+        <textarea id="content_body" name="content_body" rows="10" cols="50" required></textarea><br><br>
+        
+        <button type="submit">Опубликовать</button>
+    </form>
+    
+    <p><a href="{{ url_for('list_content_page') }}">К списку материалов</a></p>
+</body>
+</html>

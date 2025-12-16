@@ -3,12 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <title>Редактировать: {{ content.title }}</title>
-    <style>
-        .error { color: red; }
-    </style>
 </head>
 <body>
-    <h1>Редактирование Материала: {{ content.title }}</h1>
+    <h1>Редактирование Материала: {{ content.title }} (ID: {{ content.content_id }})</h1>
     
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
