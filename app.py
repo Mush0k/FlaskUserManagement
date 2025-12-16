@@ -18,6 +18,8 @@ from logic.slugify import slugify
 # создание экземпляра Flask-приложения
 app = Flask(__name__)
 
+app.secret_key = 'mushok'
+
 # настройки подключения к БД 
 DB_CONFIG = {
     'host': 'localhost',
@@ -163,6 +165,162 @@ def get_all_categories():
         if cnx and cnx.is_connected():
             cnx.close()
 
+# CREATE: Вставка нового материала
+# CREATE: Вставка нового материала (ПРИНИМАЕТ СТАТУС)
+def insert_new_content(user_id, category_id, type_id, title, content_body, status):
+    cnx = None
+    try:
+        # Убедимся, что ID — это числа
+        user_id = int(user_id)
+        category_id = int(category_id)
+        type_id = int(type_id)
+        
+        cnx = mysql.connector.connect(**DB_CONFIG)
+        cursor = cnx.cursor()
+        content_slug = slugify(title)
+        
+        # ЗАПРОС: Теперь использует переменную status вместо жесткой 'Draft'
+        query = """
+        INSERT INTO content 
+        (user_id, category_id, type_id, title, slug, content_body, status, published_at) 
+        VALUES (%s, %s, %s, %s, %s, %s, %s, NOW()) 
+        """
+        
+        cursor.execute(query, (
+            user_id, 
+            category_id, 
+            type_id, 
+            title, 
+            content_slug, 
+            content_body, 
+            status # <--- СТАТУС ПЕРЕДАЕТСЯ СЮДА
+        ))
+        
+        cnx.commit() 
+        return True
+    except Exception as err:
+        print(f"КРИТИЧЕСКАЯ ОШИБКА SQL/PYTHON в insert_new_content: {err}")
+        return False
+    finally:
+        if cnx and cnx.is_connected():
+            cnx.close()
+
+# READ: получение списка всех материалов для таблицы (ИСПРАВЛЕННАЯ ВЕРСИЯ)
+# READ: получение списка всех материалов для таблицы (САМАЯ ВЕРОЯТНАЯ ПРОБЛЕМА)
+def get_all_content():
+    cnx = None
+    try:
+        cnx = mysql.connector.connect(**DB_CONFIG)
+        cursor = cnx.cursor(dictionary=True)
+        
+        # Запрос с INNER JOIN, где users.user_id = content.user_id
+        query = """
+        SELECT 
+            c.content_id, c.title, c.status, c.published_at, c.user_id,
+            u.username AS author_name 
+        FROM content c
+        JOIN users u ON c.user_id = u.user_id  
+        ORDER BY c.published_at DESC
+        """
+        cursor.execute(query)
+        result = cursor.fetchall()
+        print(f"DEBUG (Вариант Б): Найдено {len(result)} материалов.")
+        return result
+    except mysql.connector.Error as err:
+        print(f"ОШИБКА SQL (Вариант Б): {err}")
+        return []
+    finally:
+        if cnx and cnx.is_connected():
+            cnx.close()
+
+# READ (Один): получение данных одного материала для редактирования
+def get_content_by_id(content_id):
+    cnx = None
+    try:
+        cnx = mysql.connector.connect(**DB_CONFIG)
+        cursor = cnx.cursor(dictionary=True)
+        query = "SELECT * FROM content WHERE content_id = %s"
+        cursor.execute(query, (content_id,))
+        return cursor.fetchone()
+    
+    except mysql.connector.Error as err:
+        print(f"Ошибка БД при получении материала: {err}")
+        return None
+    finally:
+        if cnx and cnx.is_connected():
+            cnx.close()
+
+# UPDATE: обновление данных материала
+def update_content(content_id, category_id, type_id, title, content_body, status):
+    cnx = None
+    try:
+        cnx = mysql.connector.connect(**DB_CONFIG)
+        cursor = cnx.cursor()
+        content_slug = slugify(title)
+        
+        query = """
+        UPDATE content SET 
+            category_id = %s, type_id = %s, title = %s, slug = %s, 
+            content_body = %s, status = %s
+        WHERE content_id = %s
+        """
+        
+        cursor.execute(query, (category_id, type_id, title, content_slug, content_body, status, content_id))
+        
+        cnx.commit() 
+        return cursor.rowcount > 0
+    except mysql.connector.Error as err:
+        print(f"Ошибка БД при обновлении материала: {err}")
+        return False
+    finally:
+        if cnx and cnx.is_connected():
+            cnx.close()
+
+# DELETE: удаление материала
+def delete_content_by_id(content_id):
+    cnx = None
+    try:
+        cnx = mysql.connector.connect(**DB_CONFIG)
+        cursor = cnx.cursor()
+        query = "DELETE FROM content WHERE content_id = %s"
+        cursor.execute(query, (content_id,))
+        cnx.commit() 
+        return cursor.rowcount > 0 
+    except mysql.connector.Error as err:
+        print(f"Ошибка БД при удалении материала: {err}")
+        return False
+    finally:
+        if cnx and cnx.is_connected():
+            cnx.close()
+
+            # ФУНКЦИЯ ПРОВЕРКИ ПРАВ
+def get_content_author_and_user_role(content_id, current_user_id):
+    # (Код, который у вас есть для проверки прав)
+    cnx = None
+    result = {'content_user_id': None, 'user_role_id': None} 
+    try:
+        cnx = mysql.connector.connect(**DB_CONFIG)
+        cursor = cnx.cursor()
+        query_author = "SELECT user_id FROM content WHERE content_id = %s"
+        cursor.execute(query_author, (content_id,))
+        content_user_id_data = cursor.fetchone()
+        if content_user_id_data:
+            result['content_user_id'] = content_user_id_data[0]
+            
+        query_role = "SELECT role_id FROM users WHERE id = %s" 
+        cursor.execute(query_role, (current_user_id,))
+        user_role_data = cursor.fetchone()
+        if user_role_data:
+            result['user_role_id'] = user_role_data[0] 
+
+        return result
+    except mysql.connector.Error as err:
+        print(f"Ошибка БД при проверке роли: {err}")
+        return result
+    finally:
+        if cnx and cnx.is_connected():
+            cnx.close()
+
 # 3. роуты
 
 # роут для главной страницы 
@@ -265,6 +423,131 @@ def catalog_page():
     catalog_html = catalog_builder(None, all_categories_data) 
     
     return render_template('catalog.html', catalog_html=catalog_html)
+
+#задание6
+ADMIN_ROLE_ID = 1 
+EDITOR_ROLE_ID = 2
+
+# CREATE: создание материала
+@app.route('/content/create', methods=['GET', 'POST'])
+def create_content_page():
+    session_hash = request.cookies.get('session_hash')
+    user_id = get_user_id_by_session_hash(session_hash)
+    
+    if not user_id:
+        flash("Необходимо авторизоваться.", "error")
+        return redirect(url_for('login_page'))
+    
+    categories = get_all_categories()
+    # Список возможных статусов, которые мы передадим в шаблон
+    possible_statuses = ['Draft', 'Published', 'Archived'] 
+    
+    if request.method == 'POST':
+        title = request.form.get('title')
+        content_body = request.form.get('content_body') 
+        category_id = request.form.get('category_id')
+        type_id = request.form.get('type_id') or 1
+        status = request.form.get('status') # <--- СЧИТЫВАЕМ СТАТУС ИЗ ФОРМЫ!
+        
+        if not title or not content_body or not category_id:
+            flash("Заполните все поля.", "error")
+            # Возвращаемся, передавая статусы и категории
+            return render_template('create_content.html', categories=categories, statuses=possible_statuses)
+            
+        # Вызываем функцию вставки, передавая статус
+        if insert_new_content(user_id, category_id, type_id, title, content_body, status):
+            flash("Материал успешно добавлен!", "success")
+            return redirect(url_for('list_content_page'))
+        else:
+            flash("Ошибка сервера при добавлении материала. Проверьте консоль для деталей.", "error")
+            # Возвращаемся, передавая статусы и категории
+            return render_template('create_content.html', categories=categories, statuses=possible_statuses) 
+      
+    # Обработка GET-запроса (отображение пустой формы)
+    return render_template('create_content.html', categories=categories, statuses=possible_statuses)
+
+
+# READ: вывод списка материалов
+@app.route('/content/list')
+def list_content_page():
+    all_content = get_all_content()
+    # Реализовать страницу со списком материалов (page), Вывести список материалов в виде таблицы.
+    return render_template('list_content.html', content_list=all_content)
+
+
+# UPDATE: редактирование 
+@app.route('/content/update', methods=['GET', 'POST'])
+def edit_content_page():
+    content_id = request.args.get('content_id')
+    user_id = get_user_id_by_session_hash(request.cookies.get('session_hash'))
+    
+    if not user_id:
+        flash("Необходимо авторизоваться.", "error")
+        return redirect(url_for('login_page')) 
+    if not content_id or not content_id.isdigit():
+        flash("Неверный ID.", "error")
+        return redirect(url_for('list_content_page'))
+    
+    # ПРОВЕРКА ПРАВ
+    auth_data = get_content_author_and_user_role(content_id, user_id) 
+    content_user_id = auth_data['content_user_id']
+    user_role_id = auth_data['user_role_id']
+    
+    if content_user_id is None:
+        flash(f"Материал ID {content_id} не найден.", "error")
+        return redirect(url_for('list_content_page'))
+    if not (content_user_id == user_id or user_role_id == ADMIN_ROLE_ID or user_role_id == EDITOR_ROLE_ID):
+        flash("У вас нет прав для редактирования.", "error")
+        return redirect(url_for('list_content_page'))
+        
+    categories = get_all_categories()
+    possible_statuses = ['Draft', 'Published', 'Archived'] 
+    content_data = get_content_by_id(content_id) 
+    
+    if request.method == 'POST':
+        title = request.form.get('title')
+        content_body = request.form.get('content_body') 
+        category_id = request.form.get('category_id')
+        type_id = request.form.get('type_id') or 1
+        status = request.form.get('status')
+        if update_content(content_id, category_id, type_id, title, content_body, status):
+            flash("Материал успешно обновлен!", "success")
+            return redirect(url_for('list_content_page')) 
+        else:
+            flash("Ошибка при обновлении.", "error")
+            
+    return render_template('edit_content.html', content=content_data, categories=categories, statuses=possible_statuses)
+
+
+# DELETE: удаление контента
+@app.route('/content/delete', methods=['GET'])
+def delete_content_action():
+    # Реализовать возможность удаления материалов. Кнопка может являться ссылкой с id материала в параметрах, например /delete?id=...
+    content_id = request.args.get('content_id')
+    user_id = get_user_id_by_session_hash(request.cookies.get('session_hash'))
+    
+    if not user_id or not content_id or not content_id.isdigit():
+        flash("Ошибка доступа или неверный ID.", "error")
+        return redirect(url_for('list_content_page'))
+    
+    # ПРОВЕРКА ПРАВ
+    auth_data = get_content_author_and_user_role(content_id, user_id) 
+    content_user_id = auth_data['content_user_id']
+    user_role_id = auth_data['user_role_id']
+    
+    if content_user_id is None:
+        flash(f"Материал не найден.", "error")
+        return redirect(url_for('list_content_page'))
+
+    if content_user_id == user_id or user_role_id == ADMIN_ROLE_ID or user_role_id == EDITOR_ROLE_ID:
+        if delete_content_by_id(content_id):
+            flash(f"Материал успешно удален!", "success")
+        else:
+            flash(f"Ошибка БД при удалении.", "error")
+    else:
+        flash("У вас нет прав для удаления.", "error")
+        
+    return redirect(url_for('list_content_page'))
 
 
 # 4. точка входа для запуска
